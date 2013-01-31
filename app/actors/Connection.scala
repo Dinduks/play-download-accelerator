@@ -2,6 +2,7 @@ package actors
 
 import akka.actor.Actor
 import akka.event.Logging
+import concurrent.ExecutionContext.Implicits.global
 import java.io.File
 import play.api.libs.iteratee.{Enumeratee, Iteratee}
 import play.api.libs.ws.WS
@@ -21,6 +22,6 @@ class Connection(file: File, startOffset: Int, endOffset: Int) extends Actor {
         println(new String(byte))
     }
     val toConsole = Enumeratee.map[Array[Byte]](bytes => bytes)
-    //    url.get(result => toConsole &> consume)
+        url.get(result => toConsole &> consume)
   }
 }
