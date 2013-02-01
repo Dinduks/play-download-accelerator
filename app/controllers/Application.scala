@@ -3,24 +3,32 @@ package controllers
 import actors.Connection
 import akka.actor.{Props, ActorSystem}
 import concurrent.ExecutionContext.Implicits.global
+import java.nio.channels.FileChannel
+import java.nio.file.{StandardOpenOption, Paths}
+import lib.Util
+import play.api.Play.current
 import play.api.mvc._
 import play.api.libs.concurrent.Akka
 import play.api.libs.ws.WS
-import play.api.Play.current
 import scala.concurrent.duration._
 
 object Application extends Controller {
 
   def index = Action {
-    val source: String = "http://stackoverflow.com/users/flair/604041.png?theme=clean"
-    val target: String = "/tmp/hello.jpg"
+    val sourceUrl: String = "http://wallpaper.metalship.org/images/megadeth.jpg"
+    val targetFilePath: String = "/tmp/megadeth.jpg"
+    val source = WS.url(sourceUrl)
 
     Async {
-      WS.url(source).head().map {
+      source.head().map {
         response =>
           val responseLength: Int = response.header("Content-Length").getOrElse {
             throw new Exception("Could not retrieve the file length.")
           }.toInt
+
+          val target = FileChannel.open(Paths.get(targetFilePath),
+            StandardOpenOption.CREATE, StandardOpenOption.SPARSE, StandardOpenOption.WRITE)
+          Util.allocateFile(target, responseLength)
 
           Akka.system.scheduler.scheduleOnce(0 second) {
             val system = ActorSystem("Connections")
