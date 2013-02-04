@@ -17,8 +17,6 @@ class Connection(target: FileChannel, source: WSRequestHolder, startOffset: Int,
   }
 
   override def preStart() = {
-    log.info("Started | Start offset: %d | End offset: %d".format(startOffset, endOffset))
-
     var position: Int = startOffset
 
     val toFile: Iteratee[Array[Byte], Unit] = Iteratee.foreach[Array[Byte]] { bytes =>
@@ -27,14 +25,7 @@ class Connection(target: FileChannel, source: WSRequestHolder, startOffset: Int,
     }
 
     source.withHeaders(headers).get(result => toFile).onComplete {
-      case _ => {
-        log.info("Done. Size: %s bytes".format(position - startOffset))
-        context.stop(self)
-      }
+      case _ => context.stop(self)
     }
-  }
-
-  override def postStop() = {
-    log.info("Stopped.")
   }
 }
