@@ -17,7 +17,7 @@ class Connection(target: FileChannel, source: WSRequestHolder, startOffset: Int,
   }
 
   override def preStart() = {
-    log.info("Started a new actor handling the %d-%d part of the file".format(startOffset, endOffset))
+    log.info("Started | Start offset: %d | End offset: %d".format(startOffset, endOffset))
 
     var position: Int = startOffset
 
@@ -26,6 +26,15 @@ class Connection(target: FileChannel, source: WSRequestHolder, startOffset: Int,
       position += bytes.length
     }
 
-    source.withHeaders(headers).get(result => toFile)
+    source.withHeaders(headers).get(result => toFile).onComplete {
+      case _ => {
+        log.info("Done. Size: %s bytes".format(position - startOffset))
+        context.stop(self)
+      }
+    }
+  }
+
+  override def postStop() = {
+    log.info("Stopped.")
   }
 }
