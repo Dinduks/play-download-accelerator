@@ -7,7 +7,10 @@
         <title>@title</title>
         <link rel="stylesheet" media="screen" href="@routes.Assets.at("stylesheets/libnotify.css")">
         <link rel="shortcut icon" type="image/png" href="@routes.Assets.at("images/favicon.png")">
-        <script data-main="@routes.Assets.at("javascripts/app.js")" src="@routes.Assets.at("javascripts/lib/require.js")"></script>
+        <script src="@routes.Assets.at("javascripts/lib/humane.min.js")"></script>
+        <script src="@routes.Assets.at("javascripts/lib/jquery.min.js")"></script>
+        <script src="@routes.Assets.at("javascripts/lib/angular.min.js")"></script>
+        <script src="@routes.Assets.at("javascripts/app/main.js")"></script>
     </head>
     <body>
         @content
