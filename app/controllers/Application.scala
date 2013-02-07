@@ -50,7 +50,7 @@ object Application extends Controller {
 
   }
 
-  def webSockets = WebSocket.using[String] { request =>
+  def ws = WebSocket.using[String] { request =>
     val in = Iteratee.foreach[String](println).mapDone { _ =>
       println("lol")
     }
