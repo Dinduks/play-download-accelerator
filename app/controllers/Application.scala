@@ -7,14 +7,15 @@ import java.nio.channels.FileChannel
 import java.nio.file.{StandardOpenOption, Paths}
 import lib.Util
 import play.api.mvc._
-import play.api.libs.iteratee.Enumerator
-import play.api.libs.iteratee.Iteratee
+import play.api.libs.iteratee.{Concurrent, Enumerator, Iteratee}
 import play.api.libs.json.{Json, JsString, JsValue}
 import play.api.libs.ws.WS
 import scala.collection._
+import play.api.Logger
 
 object Application extends Controller {
 
+  val log: Logger = Logger("axel")
   val actorSystems: mutable.Map[String, ActorSystem] = mutable.Map.empty
 
   def index = Action {
@@ -46,18 +47,19 @@ object Application extends Controller {
       } else {
         // TODO: Show a notification if the file is already being downloaded
       }
-
-      ()
     }
   }
 
   def ws = WebSocket.using[JsValue] { request =>
+    log.info("New connection")
+
     val in = Iteratee.foreach[JsValue] { message =>
       (message \ "kind").as[String] match {
         case "newDownload" => startDownload((message \ "data").as[String])
       }
-    }
-    val out = Enumerator(Json.parse(Json.stringify(JsString("duh herro"))))
+    }.mapDone { _ => log.info("Disconnected") }
+
+    val (out, channel) = Concurrent.broadcast[JsValue]
 
     (in, out)
   }
@@ -69,4 +71,3 @@ object Application extends Controller {
     ((responseLength + (4 - responseLength % 4)) / 4) * (connection - 1);
 
 }
-
