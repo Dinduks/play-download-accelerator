@@ -53,7 +53,9 @@ object Application extends Controller {
 
   def ws = WebSocket.using[JsValue] { request =>
     val in = Iteratee.foreach[JsValue] { message =>
-      startDownload((message \ "data").as[String])
+      (message \ "kind").as[String] match {
+        case "newDownload" => startDownload((message \ "data").as[String])
+      }
     }
     val out = Enumerator(Json.parse(Json.stringify(JsString("duh herro"))))
 
