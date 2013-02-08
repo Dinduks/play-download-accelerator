@@ -15,14 +15,15 @@ import scala.collection._
 
 object Application extends Controller {
 
-  var actorSystems: mutable.Map[String, ActorSystem] = mutable.Map.empty
+  val actorSystems: mutable.Map[String, ActorSystem] = mutable.Map.empty
 
   def index = Action {
     Ok(views.html.index())
   }
 
   def startDownload(sourceUrl: String) = {
-    val targetFilePath: String = "/tmp/%d.jpg".format(actorSystems.size)
+    val fileName: String = if (2 > sourceUrl.split("/").size) System.currentTimeMillis.toString else sourceUrl.split("/").last
+    val targetFilePath: String = "/tmp/%s".format(fileName)
     val source = WS.url(sourceUrl)
 
     source.head().map { response =>
