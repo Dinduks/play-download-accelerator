@@ -6,56 +6,55 @@ import concurrent.ExecutionContext.Implicits.global
 import java.nio.channels.FileChannel
 import java.nio.file.{StandardOpenOption, Paths}
 import lib.Util
-import play.api.Play.current
 import play.api.mvc._
-import play.api.libs.concurrent.Akka
-import play.api.libs.ws.WS
-import scala.concurrent.duration._
 import play.api.libs.iteratee.Enumerator
 import play.api.libs.iteratee.Iteratee
+import play.api.libs.json.{Json, JsString, JsValue}
+import play.api.libs.ws.WS
+import scala.collection._
 
 object Application extends Controller {
+
+  var actorSystems: mutable.Map[String, ActorSystem] = mutable.Map.empty
 
   def index = Action {
     Ok(views.html.index())
   }
 
-  def temp = {
-    val sourceUrl: String = "http://wallpaper.metalship.org/images/megadeth.jpg"
-    val targetFilePath: String = "/tmp/megadeth.jpg"
+  def startDownload(sourceUrl: String) = {
+    val targetFilePath: String = "/tmp/%d.jpg".format(actorSystems.size)
     val source = WS.url(sourceUrl)
 
-    Async {
-      source.head().map { response =>
-        val responseLength: Int = response.header("Content-Length").getOrElse {
-          throw new Exception("Could not retrieve the file length.")
-        }.toInt
+    source.head().map { response =>
+      val responseLength: Int = response.header("Content-Length").getOrElse {
+        // TODO: Show this message as a notification
+        // TOFIX: When the file size can't be retrieved, I can't "see" the exception
+        throw new Exception("Could not retrieve the file length.")
+      }.toInt
 
-        val target = FileChannel.open(Paths.get(targetFilePath),
-          StandardOpenOption.CREATE, StandardOpenOption.SPARSE, StandardOpenOption.WRITE)
-        Util.allocateFile(target, responseLength)
+      val target = FileChannel.open(Paths.get(targetFilePath),
+        StandardOpenOption.CREATE, StandardOpenOption.SPARSE, StandardOpenOption.WRITE)
+      Util.allocateFile(target, responseLength)
 
-        Akka.system.scheduler.scheduleOnce(0 second) {
-          val system = ActorSystem("Connections")
-
-          system.actorOf(Props(new Connection(target, source, getStartOffset(responseLength, 1, 4), getEndOffset(responseLength, 1, 4))), name = "connection1")
-          system.actorOf(Props(new Connection(target, source, getStartOffset(responseLength, 2, 4), getEndOffset(responseLength, 2, 4))), name = "connection2")
-          system.actorOf(Props(new Connection(target, source, getStartOffset(responseLength, 3, 4), getEndOffset(responseLength, 3, 4))), name = "connection3")
-          system.actorOf(Props(new Connection(target, source, getStartOffset(responseLength, 4, 4), getEndOffset(responseLength, 4, 4))), name = "connection4")
-        }
-
-        Ok("")
+      // TOFIX: When given an invalid system name, I can't "see" the exception
+      if (actorSystems.put(sourceUrl, ActorSystem("actorSystem%d".format(actorSystems.size))).isEmpty) {
+        actorSystems.get(sourceUrl).get.actorOf(Props(new Connection(target, source, getStartOffset(responseLength, 1, 4), getEndOffset(responseLength, 1, 4))), name = "connection1")
+        actorSystems.get(sourceUrl).get.actorOf(Props(new Connection(target, source, getStartOffset(responseLength, 2, 4), getEndOffset(responseLength, 2, 4))), name = "connection2")
+        actorSystems.get(sourceUrl).get.actorOf(Props(new Connection(target, source, getStartOffset(responseLength, 3, 4), getEndOffset(responseLength, 3, 4))), name = "connection3")
+        actorSystems.get(sourceUrl).get.actorOf(Props(new Connection(target, source, getStartOffset(responseLength, 4, 4), getEndOffset(responseLength, 4, 4))), name = "connection4")
+      } else {
+        // TODO: Show a notification if the file is already being downloaded
       }
-    }
 
+      ()
+    }
   }
 
-  def ws = WebSocket.using[String] { request =>
-    val in = Iteratee.foreach[String](println).mapDone { _ =>
-      println("lol")
+  def ws = WebSocket.using[JsValue] { request =>
+    val in = Iteratee.foreach[JsValue] { message =>
+      startDownload((message \ "data").as[String])
     }
-
-    val out = Enumerator("herp")
+    val out = Enumerator(Json.parse(Json.stringify(JsString("duh herro"))))
 
     (in, out)
   }
