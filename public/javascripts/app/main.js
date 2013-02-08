@@ -8,8 +8,6 @@
     axel.ws = new WebSocket("ws://localhost:9000/ws");
 
     axel.startNewDownload = function (url) {
-        humane.log("Starting a new download...");
-
         axel.ws.send(JSON.stringify({ kind: 'newDownload', data: url }));
     };
 
@@ -18,6 +16,18 @@
     };
 
     axel.ws.onmessage = function (message) {
+        message = JSON.parse(message.data)
+
+        switch (message.kind) {
+            case 'info':
+                humane.log(message.data)
+                break;
+            case 'error':
+                humane.log(message.data)
+                break;
+            default:
+                break;
+        }
     };
 })($, humane, angular);
 
