@@ -33,16 +33,24 @@
 
 function eventHandler($, humane, axel) {
     $("document").ready(function () {
-        $("#url").parent().submit(function (event) {
+        $("#path").parent().keypress(function (event) {
+            if (13 != event.which) return;
+
+            var errorMessage = "";
+
             var urlRegex = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/;
             var $url = $("#url");
+            var $path = $("#path");
 
-            if (!urlRegex.test($url.val()))
-                alert("Please enter a valid URL");
+            if (!urlRegex.test($url.val())) errorMessage += "Please enter a valid URL<br />";
+            if ("" === $path.val())         errorMessage += "Please enter a path";
 
-            axel.startNewDownload($url.val());
-
-            $url.val("");
+            if ("" !== errorMessage) {
+                humane.log(errorMessage)
+            } else {
+                axel.startNewDownload($url.val());
+                $url.val("");
+            }
 
             event.preventDefault();
         });
