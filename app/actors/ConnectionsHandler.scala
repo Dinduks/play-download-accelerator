@@ -73,18 +73,12 @@ class ConnectionsHandler extends Actor {
       actorSystems.get(source.url).get.put(
         i,
         context.actorOf(
-          Props(new Connection(target, source, getStartOffset(responseLength, i), getEndOffset(responseLength, i), i)),
+          Props(new Connection(target, source, responseLength, i, 4)),
           name = "connection%d".format(i)
         )
       )
     }
   }
-
-  private def getEndOffset(responseLength: Int, connection: Int, connectionsNumber: Int = 4): Int =
-    if (connection == connectionsNumber) responseLength - 1 else ((responseLength + (4 - responseLength % 4)) / 4) * connection - 1;
-
-  private def getStartOffset(responseLength: Int, connection: Int, connectionsNumber: Int = 4): Int =
-    ((responseLength + (4 - responseLength % 4)) / 4) * (connection - 1);
 
   def allocateAndGetFileChannel(targetFilePath: String, responseLength: Int) = {
     val target: FileChannel = FileChannel.open(
