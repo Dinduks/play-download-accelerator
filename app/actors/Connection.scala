@@ -8,6 +8,7 @@ import java.nio.channels.FileChannel
 import play.api.libs.iteratee.Iteratee
 import play.api.libs.ws.WS.WSRequestHolder
 import lib.Util
+import util.{Success, Failure}
 
 class Connection(target: FileChannel, source: WSRequestHolder, responseLength: Int, connection: Int, connectionsCounter: Int) extends Actor {
 
@@ -28,7 +29,8 @@ class Connection(target: FileChannel, source: WSRequestHolder, responseLength: I
     }
 
     source.withHeaders(headers).get(result => toFile).onComplete {
-      case _ => context.parent ! FinishedDownloadingPart(source.url, connection)
+      case Success(_) => context.parent ! FinishedDownloadingPart(source.url, connection)
+      case Failure(_) => FailedDownload(source.url, connection)
     }
   }
 

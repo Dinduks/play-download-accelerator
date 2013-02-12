@@ -65,6 +65,12 @@ class ConnectionsHandler extends Actor {
         ))
       }
     }
+    case FailedDownload(url, part) => {
+      channel.push(Json.obj(
+        "kind" -> "downloadFailure",
+        "data" -> "Failed retriving the part %d of %s".format(part, url)
+      ))
+    }
   }
 
   def createActor(responseLength: Int, target: FileChannel, source: WS.WSRequestHolder) = {
@@ -96,3 +102,4 @@ class ConnectionsHandler extends Actor {
 case class AddConnection(url: String, targetFilePath: String)
 case class SetChannel(channel: Channel[JsValue])
 case class FinishedDownloadingPart(url: String, part: Int)
+case class FailedDownload(url: String, part: Int)

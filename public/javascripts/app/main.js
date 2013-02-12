@@ -19,16 +19,8 @@
         message = JSON.parse(message.data)
 
         switch (message.kind) {
-            case 'info':
-                humane.log(message.data)
-                break;
-            case 'error':
-                humane.log(message.data)
-                break;
-            case 'downloadFinished':
-                humane.log(message.data)
-                break;
             default:
+                humane.log(message.data)
                 break;
         }
     };
