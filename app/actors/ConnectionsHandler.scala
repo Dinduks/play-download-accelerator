@@ -13,7 +13,8 @@ import play.api.libs.iteratee.Concurrent.Channel
 
 class ConnectionsHandler extends Actor {
 
-  val actorSystems: mutable.Map[String, (Short, ActorRef)] = mutable.Map.empty
+  type filePart = mutable.Map[Int, ActorRef]
+  val actorSystems: mutable.Map[String, filePart] = mutable.Map.empty
   var channel: Channel[JsValue] = _
 
   def receive = {
@@ -50,20 +51,35 @@ class ConnectionsHandler extends Actor {
       }
     }
     case SetChannel(channel) => this.channel = channel
+    case FinishedDownloadingPart(url, part) => {
+      context.stop(actorSystems.get(url).get.get(part).get)
+      actorSystems.get(url).get.remove(part)
+
+      if (actorSystems.get(url).get.isEmpty)
+      {
+        actorSystems.remove(url)
+
+        channel.push(Json.obj(
+          "kind" -> "downloadFinished",
+          "data" -> "Download finished"
+        ))
+      }
+    }
   }
 
   def createActor(responseLength: Int, target: FileChannel, source: WS.WSRequestHolder) = {
+    actorSystems.put(source.url, mutable.Map.empty)
     for (i <- 1 to 4) {
-      actorSystems.put(
-        source.url,
-        (1, context.actorOf(
-            Props(new Connection(target, source, getStartOffset(responseLength, i), getEndOffset(responseLength, i))),
-            name = "connection%d".format(i)
-          )
+      actorSystems.get(source.url).get.put(
+        i,
+        context.actorOf(
+          Props(new Connection(target, source, getStartOffset(responseLength, i), getEndOffset(responseLength, i), i)),
+          name = "connection%d".format(i)
         )
       )
     }
   }
+
   private def getEndOffset(responseLength: Int, connection: Int, connectionsNumber: Int = 4): Int =
     if (connection == connectionsNumber) responseLength - 1 else ((responseLength + (4 - responseLength % 4)) / 4) * connection - 1;
 
@@ -85,3 +101,4 @@ class ConnectionsHandler extends Actor {
 
 case class AddConnection(url: String, targetFilePath: String)
 case class SetChannel(channel: Channel[JsValue])
+case class FinishedDownloadingPart(url: String, part: Int)

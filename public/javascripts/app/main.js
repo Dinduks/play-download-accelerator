@@ -25,6 +25,9 @@
             case 'error':
                 humane.log(message.data)
                 break;
+            case 'downloadFinished':
+                humane.log(message.data)
+                break;
             default:
                 break;
         }

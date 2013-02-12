@@ -8,7 +8,7 @@ import java.nio.channels.FileChannel
 import play.api.libs.iteratee.Iteratee
 import play.api.libs.ws.WS.WSRequestHolder
 
-class Connection(target: FileChannel, source: WSRequestHolder, startOffset: Int, endOffset: Int) extends Actor {
+class Connection(target: FileChannel, source: WSRequestHolder, startOffset: Int, endOffset: Int, part: Int) extends Actor {
   val log = Logging(context.system, this)
   val headers: (String, String) = ("Range", "bytes=%d-%d".format(startOffset, endOffset))
 
@@ -25,7 +25,7 @@ class Connection(target: FileChannel, source: WSRequestHolder, startOffset: Int,
     }
 
     source.withHeaders(headers).get(result => toFile).onComplete {
-      case _ => context.stop(self)
+      case _ => context.parent ! FinishedDownloadingPart(source.url, part)
     }
   }
 }
